@@ -33,7 +33,48 @@ class ColorLinesGame {
     this.selected = null;
     this.score = 0;
     this.nextColors = this.randomColors(spawnCount);
+    this.itemUses = { ...this.config.itemLimits };
+    this.stopNextSpawn = false;
     this.placeRandomBalls(initialBalls);
+  }
+
+  canUseItem(type) {
+    return Object.prototype.hasOwnProperty.call(this.itemUses, type)
+      && this.itemUses[type] > 0;
+  }
+
+  useItem(type, row, col) {
+    if (!this.canUseItem(type)) return false;
+
+    if (type === "stop") {
+      if (this.stopNextSpawn) return false;
+
+      this.stopNextSpawn = true;
+      this.itemUses.stop -= 1;
+      return true;
+    }
+
+    if (!this.isInsideBoard(row, col) || !this.hasBall(row, col)) return false;
+
+    if (type === "hammer") {
+      this.board[row][col] = null;
+    } else if (type === "rainbow") {
+      if (this.board[row][col] === this.wildcard.value) return false;
+      this.board[row][col] = this.wildcard.value;
+    } else {
+      return false;
+    }
+
+    this.itemUses[type] -= 1;
+    this.selected = null;
+    return true;
+  }
+
+  shouldSkipSpawn() {
+    if (!this.stopNextSpawn) return false;
+
+    this.stopNextSpawn = false;
+    return true;
   }
 
   randomColor() {

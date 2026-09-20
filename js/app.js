@@ -1,17 +1,21 @@
 (function initializeApp() {
-const { GAME_CONFIG, WILDCARD_BALL } = window.ColorLinesConfig;
+const { GAME_CONFIG, ITEMS, WILDCARD_BALL } = window.ColorLinesConfig;
 const { ColorLinesGame } = window;
 
 class ColorLinesApp {
   constructor() {
     this.game = new ColorLinesGame();
     this.busy = false;
+    this.activeItem = null;
+    this.noticeTimer = null;
     this.bestScore = this.loadBestScore();
     this.elements = {
       board: document.getElementById("board"),
       score: document.getElementById("score"),
       best: document.getElementById("best"),
       nextBalls: document.getElementById("nextBalls"),
+      itemButtons: document.getElementById("itemButtons"),
+      itemHint: document.getElementById("itemHint"),
       gameOver: document.getElementById("gameOver"),
       finalScore: document.getElementById("finalScore"),
       restartButton: document.getElementById("restartButton"),
@@ -20,11 +24,16 @@ class ColorLinesApp {
 
     this.elements.restartButton.addEventListener("click", () => this.start());
     this.elements.gameOverRestart.addEventListener("click", () => this.start());
+    this.renderItemButtons();
   }
 
   start() {
     this.game.reset();
     this.busy = false;
+    this.activeItem = null;
+    clearTimeout(this.noticeTimer);
+    this.elements.itemHint.textContent = "每局限量使用";
+    this.elements.itemHint.classList.remove("show");
     this.elements.gameOver.classList.remove("show");
     this.updateStatus();
     this.renderBoard();
@@ -44,6 +53,7 @@ class ColorLinesApp {
         cell.dataset.col = col;
 
         if (this.isSelected(row, col)) cell.classList.add("selected");
+        if (this.activeItem && color) cell.classList.add("item-target");
         if (color) cell.appendChild(this.createBall(color));
 
         cell.addEventListener("click", () => this.handleCellClick(row, col));
@@ -54,6 +64,11 @@ class ColorLinesApp {
 
   async handleCellClick(row, col) {
     if (this.busy) return;
+
+    if (this.activeItem) {
+      await this.useTargetItem(row, col);
+      return;
+    }
 
     if (this.game.hasBall(row, col)) {
       this.game.select(row, col);
@@ -79,10 +94,14 @@ class ColorLinesApp {
       const removed = await this.removeCompletedLines();
 
       if (!removed) {
-        this.game.spawnNextBalls();
-        this.renderBoard();
-        await this.removeCompletedLines();
-        this.game.refreshNextColors();
+        if (this.game.shouldSkipSpawn()) {
+          this.showItemNotice("已跳過這次補球！");
+        } else {
+          this.game.spawnNextBalls();
+          this.renderBoard();
+          await this.removeCompletedLines();
+          this.game.refreshNextColors();
+        }
       }
 
       this.updateStatus();
@@ -141,6 +160,111 @@ class ColorLinesApp {
     for (const color of this.game.nextColors) {
       this.elements.nextBalls.appendChild(this.createBall(color, "mini-ball"));
     }
+
+    this.updateItemButtons();
+  }
+
+  renderItemButtons() {
+    this.elements.itemButtons.innerHTML = "";
+
+    for (const [type, item] of Object.entries(ITEMS)) {
+      const button = document.createElement("button");
+      button.className = "item-button";
+      button.type = "button";
+      button.dataset.item = type;
+      button.title = item.description;
+      button.setAttribute("aria-label", `${item.label}：${item.description}`);
+      button.innerHTML = `
+        <span class="item-icon" aria-hidden="true">${item.icon}</span>
+        <span class="item-name">${item.label}</span>
+        <span class="item-count" aria-hidden="true"></span>
+      `;
+      button.addEventListener("click", () => this.handleItemClick(type));
+      this.elements.itemButtons.appendChild(button);
+    }
+  }
+
+  handleItemClick(type) {
+    if (this.busy || !this.game.canUseItem(type)) return;
+
+    const item = ITEMS[type];
+    if (!item.needsTarget) {
+      if (this.game.useItem(type)) {
+        this.activeItem = null;
+        this.game.selected = null;
+        this.showItemNotice("下次補球已暫停");
+        this.renderBoard();
+        this.updateStatus();
+      } else {
+        this.showItemNotice("暫停效果已經啟動");
+      }
+      return;
+    }
+
+    this.activeItem = this.activeItem === type ? null : type;
+    this.game.selected = null;
+    this.renderBoard();
+    this.updateItemButtons();
+
+    this.elements.itemHint.textContent = this.activeItem
+      ? `${item.icon} 選擇一顆球`
+      : "已取消選擇";
+  }
+
+  async useTargetItem(row, col) {
+    const type = this.activeItem;
+
+    if (!this.game.hasBall(row, col)) {
+      this.showItemNotice("請選擇一顆球");
+      return;
+    }
+
+    if (!this.game.useItem(type, row, col)) {
+      this.showItemNotice(type === "rainbow" ? "這已經是萬用球" : "無法使用道具");
+      return;
+    }
+
+    this.activeItem = null;
+    this.busy = true;
+    this.renderBoard();
+    this.updateStatus();
+    this.showItemNotice(`${ITEMS[type].label}使用成功！`);
+
+    try {
+      if (type === "rainbow") await this.removeCompletedLines();
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  updateItemButtons() {
+    for (const button of this.elements.itemButtons.children) {
+      const { item: type } = button.dataset;
+      const remaining = this.game.itemUses[type];
+      const isActive = this.activeItem === type
+        || (type === "stop" && this.game.stopNextSpawn);
+
+      button.querySelector(".item-count").textContent = `×${remaining}`;
+      button.classList.toggle("active", isActive);
+      button.classList.toggle("effect-active", type === "stop" && this.game.stopNextSpawn);
+      button.disabled = remaining === 0 || (type === "stop" && this.game.stopNextSpawn);
+      button.setAttribute("aria-pressed", String(isActive));
+      button.setAttribute(
+        "aria-label",
+        `${ITEMS[type].label}：${ITEMS[type].description}、剩餘${remaining}次`,
+      );
+    }
+  }
+
+  showItemNotice(message) {
+    clearTimeout(this.noticeTimer);
+    this.elements.itemHint.textContent = message;
+    this.elements.itemHint.classList.add("show");
+
+    this.noticeTimer = setTimeout(() => {
+      this.elements.itemHint.textContent = "每局限量使用";
+      this.elements.itemHint.classList.remove("show");
+    }, 1800);
   }
 
   updateBestScore() {
