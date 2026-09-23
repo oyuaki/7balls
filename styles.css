@@ -30,7 +30,7 @@ body {
 .app {
   --sidebar-width: 220px;
   --layout-chrome-width: 112px;
-  --layout-chrome-height: 130px;
+  --layout-chrome-height: 110px;
   --board-frame-size: min(
     648px,
     calc(96vw - var(--sidebar-width) - var(--layout-chrome-width)),
@@ -647,13 +647,15 @@ button:hover {
 @media (max-height: 650px) {
   .app {
     --sidebar-width: clamp(160px, 24vw, 200px);
-    --layout-chrome-width: 62px;
-    --layout-chrome-height: 76px;
-    padding: 8px;
+    --layout-chrome-width: 52px;
+    --layout-chrome-height: 50px;
+    padding: 6px;
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-left: max(6px, env(safe-area-inset-left));
   }
 
   .panel {
-    padding: 14px;
+    padding: 10px;
     border-top-width: 10px;
   }
 
@@ -701,23 +703,65 @@ button:hover {
   }
 }
 
-@media (max-width: 720px) and (orientation: portrait) {
+/* 極端に背の低い横画面 (小型スマホの横持ち) では側面パネルを少し詰める */
+@media (max-height: 380px) {
+  .topbar {
+    gap: 7px;
+  }
+
+  .score {
+    font-size: 24px;
+  }
+
+  .score-box {
+    padding: 5px 8px;
+  }
+
+  .mini-ball {
+    width: 26px;
+    height: 26px;
+  }
+
+  .next-balls {
+    margin-top: 4px;
+    padding: 6px;
+  }
+
+  .items-area {
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 820px) and (orientation: portrait) {
   .app {
-    width: min(100%, calc(100vh - 151px));
-    width: min(100%, calc(100dvh - 151px));
+    /* 盤面以外が縦に使う高さ。js/layout.js が実測値へ更新する */
+    --stack-sync: 1;
+    --stack-height: 264px;
+    width: 100%;
     max-width: 100%;
-    padding: 8px;
+    padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+    padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
   }
 
   .panel {
-    padding: 14px;
+    padding: 12px 8px;
     border-radius: 3px;
   }
 
   .game-layout {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
+  }
+
+  /* 盤面は「横幅いっぱい」と「残りの高さ」の小さいほうに合わせた正方形 */
+  .board-wrap {
+    width: min(100%, calc(100vh - var(--stack-height)));
+    width: min(100%, calc(100dvh - var(--stack-height)));
+    height: auto;
+    margin-inline: auto;
+    padding: 5px;
   }
 
   #board {
@@ -725,9 +769,8 @@ button:hover {
     gap: 1px;
   }
 
-  .board-wrap {
-    width: 100%;
-    height: auto;
+  .sidebar {
+    gap: 8px;
   }
 
   .topbar {
@@ -757,8 +800,8 @@ button:hover {
   }
 
   .mini-ball {
-    width: 24px;
-    height: 24px;
+    width: clamp(24px, 6.4vw, 40px);
+    height: clamp(24px, 6.4vw, 40px);
   }
 
   .mini-ball .face {
@@ -772,7 +815,7 @@ button:hover {
   }
 
   .score {
-    font-size: 23px;
+    font-size: clamp(23px, 6vw, 36px);
   }
 
   .controls {
@@ -796,7 +839,7 @@ button:hover {
   .item-button {
     flex-direction: row;
     justify-content: center;
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 10px;
   }
 
@@ -810,4 +853,7 @@ button:hover {
     font-size: 11px;
   }
 
+  button {
+    min-height: 44px;
+  }
 }
