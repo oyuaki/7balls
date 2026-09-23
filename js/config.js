@@ -6,7 +6,7 @@ window.ColorLinesConfig = Object.freeze({
     spawnCount: 3,
     moveStepDuration: 38,
     removeDuration: 200,
-    wildcardChance: 0.06,
+    wildcardChance: 0.03,
     bestScoreStorageKey: "colorLinesBest",
     itemLimits: Object.freeze({
       hammer: 2,
