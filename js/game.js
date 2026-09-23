@@ -265,7 +265,7 @@ class ColorLinesGame {
 
   calculateScore(count) {
     if (count <= this.config.lineLength) return count * 2;
-    return this.config.lineLength * 2 + (count - this.config.lineLength) * 3;
+    return this.config.lineLength * 2 + (count - this.config.lineLength) * 5;
   }
 
   isGameOver() {
