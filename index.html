@@ -22,6 +22,11 @@
     href="./assets/icons/icon-512.png"
   />
   <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Color Lines" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
@@ -80,5 +85,14 @@
   <script src="./js/game.js"></script>
   <script src="./js/app.js"></script>
   <script src="./js/layout.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch((error) => {
+          console.warn("Service worker registration failed:", error);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
