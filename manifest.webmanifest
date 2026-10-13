@@ -1,8 +1,8 @@
 {
   "name": "Color Lines",
   "short_name": "Color Lines",
-  "description": "將五個以上同色球連成一線的益智遊戲 Color Lines",
-  "lang": "zh-Hant",
+  "description": "Line up 5 or more balls of the same color.",
+  "lang": "en",
   "id": "./",
   "start_url": "./",
   "scope": "./",
